@@ -21,17 +21,16 @@ using CUE4Parse.Utils;
 using EpicManifestParser;
 using EpicManifestParser.UE;
 using FortnitePorting.Application;
-using FortnitePorting.Controls;
 using FortnitePorting.Extensions;
 using FortnitePorting.Framework;
 using FortnitePorting.Framework.Controls;
-using FortnitePorting.Services;
-using FortnitePorting.Framework.Services;
 using FortnitePorting.Framework.ViewModels.Endpoints;
 using FortnitePorting.ViewModels.Endpoints;
 using FortnitePorting.ViewModels.Endpoints.Models;
 using Serilog;
 using UE4Config.Parsing;
+using Newtonsoft.Json;
+using FortnitePorting.Export;
 using FGuid = CUE4Parse.UE4.Objects.Core.Misc.FGuid;
 
 namespace FortnitePorting.ViewModels;
@@ -100,6 +99,9 @@ public class CUE4ParseViewModel : ViewModelBase
 
         HomeVM.Update("Loading Application Assets");
         await LoadRequiredAssets();
+
+        HomeVM.Update("Generating database");
+        await GenerateDatabase();
     }
 
     private async Task InitializeOodle()
@@ -367,6 +369,83 @@ public class CUE4ParseViewModel : ViewModelBase
         foreach (var path in FemaleLobbyMontagePaths)
         {
             FemaleLobbyMontages.AddIfNotNull(await Provider.TryLoadObjectAsync<UAnimMontage>(path));
+        }
+    }
+
+    private async Task GenerateDatabase()
+    {
+        List<AssetType> assetTypes = new List<AssetType>
+        {
+            new Outfit(),
+            new Backpack(),
+            new Pickaxe(),
+            new Glider(),
+            new Pet(),
+            new Toy(),
+            new Emoticon(),
+            new Spray(),
+            new Banner(),
+            new LoadingScreen(),
+            new Emote(),
+            new Item(),
+            new Resource(),
+            new Trap(),
+            new Vehicle(),
+        };
+
+        var directory = Path.Combine(AppSettings.Current.GetExportPath());
+        Directory.CreateDirectory(directory);
+
+        var exportAssets = new Dictionary<string, ExportAsset>();
+        var errors = new List<string>();
+        var assetCount = 0;
+
+        Log.Information("Extracting assets");
+        foreach (var assetType in assetTypes)
+        {
+            var assets = AssetRegistry.Where(data => assetType.Classes.Contains(data.AssetClass.Text)).ToList();
+            var randomAsset = assets.FirstOrDefault(x => x.AssetName.Text.EndsWith("Random", StringComparison.OrdinalIgnoreCase));
+            if (randomAsset is not null) assets.Remove(randomAsset);
+
+            foreach (var data in assets)
+            {
+                try
+                {
+                    var asset = await Provider.TryLoadObjectAsync(data.ObjectPath);
+                    if (asset is null) continue;
+
+                    Log.Information("Processing asset {0}", asset.Name);
+                    var exportAsset = new ExportAsset(assetType, asset);
+                    await exportAsset.ExportIcon();
+                    exportAssets.Add(exportAsset.ID, exportAsset);
+                    ++assetCount;
+                } catch (Exception e)
+                {
+                    Log.Error("Error exporting asset of type {assetType} and id {assetId} {0}", assetType, data.AssetName, e);
+                }
+            }
+        }
+
+
+        Log.Information("DataTables processed {0}", Item.processedTables);
+        Log.Information("Extracted assets {0}", assetCount);
+
+        try
+        {
+            var jsonDirectory = Path.Combine(directory, "json");
+            Directory.CreateDirectory(jsonDirectory);
+            var exportPath = Path.Combine(jsonDirectory, "assets.json");
+            await Task.Run(() =>
+            {
+                using (StreamWriter file = File.CreateText(exportPath))
+                {
+                    JsonSerializer serializer = new JsonSerializer();
+                    serializer.Serialize(file, exportAssets);
+                }
+            });
+        } catch(Exception e)
+        {
+            Log.Error("Error exporting json {e}", e);
         }
     }
 }

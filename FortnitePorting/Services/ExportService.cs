@@ -16,6 +16,7 @@ using FortnitePorting.Framework.Controls;
 using FortnitePorting.Framework.Extensions;
 using FortnitePorting.Framework.Services;
 using Newtonsoft.Json;
+using Serilog;
 
 namespace FortnitePorting.Services;
 
@@ -35,7 +36,12 @@ public static class ExportService
         {
             if (exportType is EExportTargetType.Folder)
             {
-                exports.ForEach(export => CreateExportData(export.AssetItem.DisplayName, export.AssetItem.Asset, export.GetSelectedStyles(), export.AssetItem.Type, exportType));
+                exports.ForEach(export =>
+                {
+                    var Exporter = new ExporterInstance(exportType);
+                    Exporter.ExportIcon(export.AssetItem.Asset, export.AssetItem.IconTexture);
+                    // CreateExportData(export.AssetItem.DisplayName, export.AssetItem.Asset, export.GetSelectedStyles(), export.AssetItem.Type, exportType);
+                });
                 return;
             }
 
@@ -123,6 +129,11 @@ public static class ExportService
             var exportResponse = CreateExportResponse([exportData], exportType);
             exportService.SendExport(JsonConvert.SerializeObject(exportResponse));
         });
+    }
+
+    public static async Task ExportDatabaseAsync()
+    {
+        Log.Information("Clicked on export database");
     }
 
     private static ExportResponse CreateExportResponse(ExportDataBase[] exportData, EExportTargetType exportType)
