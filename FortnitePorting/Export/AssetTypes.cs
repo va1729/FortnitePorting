@@ -236,7 +236,7 @@ class Item : AssetType
         stats.Add("firingRate", firingRate);
 
         weaponRowValue.TryGetValue(out float burstFiringRate, "BurstFiringRate");
-        stats.Add("burstRateOfFire", burstFiringRate);
+        stats.Add("burstFiringRate", burstFiringRate);
 
         weaponRowValue.TryGetValue(out float diceCritChance, "DiceCritChance");
         stats.Add("criticalHitChance", diceCritChance);
@@ -253,13 +253,13 @@ class Item : AssetType
         weaponRowValue.TryGetValue(out float envDmgPB, "EnvDmgPB");
         stats.Add("environmentDamagePerBullet", envDmgPB);
 
-        weaponRowValue.TryGetValue(out float clipSize, "ClipSize");
+        weaponRowValue.TryGetValue(out int clipSize, "ClipSize");
         stats.Add("clipSize", clipSize);
 
-        weaponRowValue.TryGetValue(out float ammoCostPerFire, "AmmoCostPerFire");
+        weaponRowValue.TryGetValue(out int ammoCostPerFire, "AmmoCostPerFire");
         stats.Add("ammoCostPerFire", ammoCostPerFire);
 
-        weaponRowValue.TryGetValue(out float bulletsPerCartridge, "BulletsPerCartridge");
+        weaponRowValue.TryGetValue(out int bulletsPerCartridge, "BulletsPerCartridge");
         stats.Add("bulletsPerCartridge", bulletsPerCartridge);
             
         return stats;
