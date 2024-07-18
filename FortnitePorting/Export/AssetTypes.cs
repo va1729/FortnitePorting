@@ -212,6 +212,8 @@ class Item : AssetType
 
         statRowName = weaponRowName;
 
+        if (statRowName.PlainText.StartsWith("Test")) throw new Exception("Possible test weapon.");
+
         if (!hasRow) return stats;
 
         var hasRowValue = allStats.TryGetValue(weaponRowName.Text, out var weaponRowValue);
