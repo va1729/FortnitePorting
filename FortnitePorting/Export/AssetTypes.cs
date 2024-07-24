@@ -240,11 +240,17 @@ class Item : AssetType
         weaponRowValue.TryGetValue(out float burstFiringRate, "BurstFiringRate");
         stats.Add("burstFiringRate", burstFiringRate);
 
+        weaponRowValue.TryGetValue(out float criticalDamageMultiplier, "DamageZone_Critical");
+        stats.Add("criticalDamageMultiplier", criticalDamageMultiplier);
+
+        weaponRowValue.TryGetValue(out float vulnerabilityDamageMultiplier, "DamageZone_Vulnerability");
+        stats.Add("vulnerabilityDamageMultiplier", criticalDamageMultiplier);
+
         weaponRowValue.TryGetValue(out float diceCritChance, "DiceCritChance");
-        stats.Add("criticalHitChance", diceCritChance);
+        stats.Add("diceCritChance", diceCritChance);
 
         weaponRowValue.TryGetValue(out float diceCritDamageMultiplier, "DiceCritDamageMultiplier");
-        stats.Add("criticalHitDamageMultiplier", diceCritDamageMultiplier);
+        stats.Add("diceCritDamageMultiplier", diceCritDamageMultiplier);
 
         weaponRowValue.TryGetValue(out float reloadTime, "ReloadTime");
         stats.Add("reloadTime", reloadTime);
