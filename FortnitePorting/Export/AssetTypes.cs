@@ -19,9 +19,9 @@ using SkiaSharp;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using Newtonsoft.Json.Converters;
-using Newtonsoft.Json.Linq;
 using CUE4Parse.UE4.Assets.Exports.Engine;
 using CUE4Parse.UE4.Objects.UObject;
+using DynamicData;
 
 abstract class AssetType
 {
@@ -31,9 +31,13 @@ abstract class AssetType
     public Func<UObject, UTexture2D?> IconHandler = GetAssetIcon;
     public Func<UObject, FText?> DisplayNameHandler = asset => asset.GetAnyOrDefault<FText?>("DisplayName", "ItemName") ?? new FText(asset.Name);
     public Func<UObject, FText> DescriptionHandler = asset => asset.GetAnyOrDefault<FText?>("Description", "ItemDescription") ?? new FText("No description.");
-    public FName statRowName = "";
     public virtual Dictionary<string, float> StatsHandler(UObject asset) {
         return new Dictionary<string, float>();
+    }
+
+    public virtual string GetStatsRowName(UObject asset)
+    {
+        return "";
     }
 
     public static UTexture2D? GetAssetIcon(UObject asset)
@@ -49,6 +53,11 @@ abstract class AssetType
 
         previewImage ??= asset.GetAnyOrDefault<UTexture2D?>("Icon", "LargeIcon", "SmallPreviewImage", "LargePreviewImage");
         return previewImage;
+    }
+
+    public virtual bool IsActive(UObject asset)
+    {
+        return true;
     }
 }
 
@@ -184,42 +193,77 @@ class Emote : AssetType
 
 class Item : AssetType
 {
+
+    public static string[] ActiveWeapons = [
+      "Tactical Assault Rifle",
+      "Combat Assault Rifle",
+      "Enforcer AR",
+      "Warforged Assault Rifle",
+      "The Machinist's Combat Assault Rifle",
+      "Combat Shotgun",
+      "Oscar's Frenzy Auto Shotgun",
+      "Hammer Pump Shotgun",
+      "Gatekeeper Shotgun",
+      "Cerberus' Gatekeeper Shotgun",
+      "Megalo Don's Combat Shotgun",
+      "Thunder Burst SMG",
+      "Harbinger SMG",
+      "Flint-Knock Pistol",
+      "Ranger Pistol",
+      "Huntress DMR",
+      "Heavy Impact Sniper Rifle",
+      "Bowcaster",
+      "Hand Cannon",
+      "DL-44",
+      "E-11",
+      "Boom Bolt",
+      "Ringmaster's Boom Bolt",
+      "Conductor Hand Cannon",
+      "Tow Hook Cannon",
+    ];
+
     public Item()
     {
         Type = EAssetType.Item;
-        Classes = new[] {
+        Classes = [
             "AthenaGadgetItemDefinition",
             "FortWeaponRangedItemDefinition",
             "FortWeaponMeleeItemDefinition",
             "FortCreativeWeaponMeleeItemDefinition",
             "FortCreativeWeaponRangedItemDefinition",
             "FortWeaponMeleeDualWieldItemDefinition"
-        };
-        Filters = new[] { "_Harvest", "Weapon_Pickaxe_", "Weapons_Pickaxe_", "Dev_WID" };
+        ];
+        Filters = [ "_Harvest", "Weapon_Pickaxe_", "Weapons_Pickaxe_", "Dev_WID" ];
     }
 
     public static List<string> processedTables = new List<string>();
     public static Dictionary<string, FStructFallback> allStats = new Dictionary<string, FStructFallback>();
 
-    public override Dictionary<string, float> StatsHandler(UObject asset)
+    public override string GetStatsRowName(UObject asset)
     {
-        var stats = new Dictionary<string, float>();
         var hasHandle = asset.TryGetValue(out FStructFallback statHandle, "WeaponStatHandle");
 
-        if (!hasHandle) return stats;
+        if (!hasHandle) return "";
 
         var hasRow = statHandle.TryGetValue(out FName weaponRowName, "RowName");
 
-        statRowName = weaponRowName;
+        if (weaponRowName.PlainText.StartsWith("Test")) throw new Exception("Possible test weapon.");
 
-        if (statRowName.PlainText.StartsWith("Test")) throw new Exception("Possible test weapon.");
+        return hasRow ? weaponRowName.Text : "";
+    }
 
-        if (!hasRow) return stats;
+    public override Dictionary<string, float> StatsHandler(UObject asset)
+    {
+        var stats = new Dictionary<string, float>();
+        var statsRowName = GetStatsRowName(asset);
 
-        var hasRowValue = allStats.TryGetValue(weaponRowName.Text, out var weaponRowValue);
+        if (statsRowName.Length == 0) return stats;
+
+        var hasRowValue = allStats.TryGetValue(statsRowName, out var weaponRowValue);
 
         if (!hasRowValue)
-        {            
+        {
+            asset.TryGetValue(out FStructFallback statHandle, "WeaponStatHandle");
             var hasTable = statHandle.TryGetValue(out UDataTable dataTable, "DataTable");
             if (processedTables.Contains(dataTable.Name)) return stats;
             foreach (var kvp in dataTable.RowMap)
@@ -229,8 +273,6 @@ class Item : AssetType
             }
             processedTables.Add(dataTable.Name);
         }
-
-        allStats.TryGetValue(weaponRowName.Text, out weaponRowValue);
 
         if (weaponRowValue == null) return stats;
 
@@ -271,6 +313,13 @@ class Item : AssetType
         stats.Add("bulletsPerCartridge", bulletsPerCartridge);
             
         return stats;
+    }
+
+    public override bool IsActive(UObject asset)
+    {
+        var displayName = DisplayNameHandler(asset)?.Text?.Trim();
+        var index = ActiveWeapons.IndexOf(displayName);
+        return index > -1;
     }
 }
 
@@ -381,8 +430,8 @@ class ExportAsset
     [JsonProperty("stats")]
     public Dictionary<string, float> Stats { get; set; }
 
-    [JsonProperty("statsRowName")]
-    public string StatsRowName { get; set; }
+    [JsonProperty("isActive")]
+    public bool IsActive { get; set; }
 
     public ExportAsset(AssetType assetType, UObject asset) {
         var icon = assetType.IconHandler(asset) ?? throw new Exception("Icon not present for asset");
@@ -411,7 +460,7 @@ class ExportAsset
 
         Stats = assetType.StatsHandler(asset);
 
-        StatsRowName = assetType.statRowName.Text;
+        IsActive = assetType.IsActive(asset);
     }
 
     public async Task Export()
