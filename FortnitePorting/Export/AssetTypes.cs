@@ -217,6 +217,8 @@ class Item : AssetType
         "Chug Splash",
         "Avengers Chest",
         "Armored Wall",
+        "Shuri's Black Panther Claws",
+        "Ultra Doom Armor"
     ];
 
     public Item()
