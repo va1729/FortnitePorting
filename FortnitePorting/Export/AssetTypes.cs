@@ -28,6 +28,8 @@ abstract class AssetType
     public EAssetType Type = EAssetType.None;
     public string[] Classes = Array.Empty<string>();
     public string[] Filters = Array.Empty<string>();
+    public string[] AllowNames = Array.Empty<string>();
+    public string[] DisAllowNames = Array.Empty<string>();
     public Func<UObject, UTexture2D?> IconHandler = GetAssetIcon;
     public Func<UObject, FText?> DisplayNameHandler = asset => asset.GetAnyOrDefault<FText?>("DisplayName", "ItemName") ?? new FText(asset.Name);
     public Func<UObject, FText> DescriptionHandler = asset => asset.GetAnyOrDefault<FText?>("Description", "ItemDescription") ?? new FText("No description.");
@@ -59,19 +61,7 @@ class Outfit : AssetType
         Type = EAssetType.Outfit;
         Classes = new[] { "AthenaCharacterItemDefinition" };
         Filters = new[] { "_NPC", "_TBD", "CID_VIP", "_Creative", "_SG" };
-        IconHandler = asset =>
-        {
-            asset.TryGetValue(out UTexture2D? previewImage, "SmallPreviewImage", "LargePreviewImage");
-            if (previewImage is null && asset.TryGetValue(out UObject heroDef, "HeroDefinition"))
-            {
-                previewImage = GetAssetIcon(heroDef);
-                previewImage ??= heroDef.GetAnyOrDefault<UTexture2D>("SmallPreviewImage", "LargePreviewImage");
-
-            }
-
-            previewImage ??= GetAssetIcon(asset);
-            return previewImage;
-        };
+        DisAllowNames = ["Bean_", "CID_Bean"];
     }
 
 }

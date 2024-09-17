@@ -478,6 +478,16 @@ public class CUE4ParseViewModel : ViewModelBase
             var randomAsset = assets.FirstOrDefault(x => x.AssetName.Text.EndsWith("Random", StringComparison.OrdinalIgnoreCase));
             if (randomAsset is not null) assets.Remove(randomAsset);
 
+            if (assetType.AllowNames.Length > 0)
+            {
+                assets.RemoveAll(asset => !assetType.AllowNames.Any(name => asset.PackageName.Text.Contains(name, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            if (assetType.DisAllowNames.Length > 0)
+            {
+                assets.RemoveAll(asset => assetType.DisAllowNames.Any(name => asset.PackageName.Text.Contains(name, StringComparison.OrdinalIgnoreCase)));
+            }
+
             foreach (var data in assets)
             {
                 try
