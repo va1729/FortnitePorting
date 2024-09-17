@@ -42,17 +42,8 @@ abstract class AssetType
 
     public static UTexture2D? GetAssetIcon(UObject asset)
     {
-        UTexture2D previewImage = null;
-        if (asset.TryGetValue(out FInstancedStruct[] dataList, "DataList"))
-        {
-            foreach (var data in dataList)
-            {
-                if (data.NonConstStruct is not null && data.NonConstStruct.TryGetValue(out previewImage, "Icon", "LargeIcon")) break;
-            }
-        }
-
-        previewImage ??= asset.GetAnyOrDefault<UTexture2D?>("Icon", "LargeIcon", "SmallPreviewImage", "LargePreviewImage");
-        return previewImage;
+        return asset.GetDataListItem<UTexture2D>("Icon", "LargeIcon")
+               ?? asset.GetAnyOrDefault<UTexture2D?>("Icon", "SmallPreviewImage", "LargeIcon", "LargePreviewImage");
     }
 
     public virtual bool IsActive(UObject asset)
@@ -77,6 +68,7 @@ class Outfit : AssetType
                 previewImage ??= heroDef.GetAnyOrDefault<UTexture2D>("SmallPreviewImage", "LargePreviewImage");
 
             }
+
             previewImage ??= GetAssetIcon(asset);
             return previewImage;
         };
@@ -109,6 +101,7 @@ class Pickaxe : AssetType
                 previewImage = GetAssetIcon(heroDef);
                 previewImage ??= heroDef.GetAnyOrDefault<UTexture2D>("SmallPreviewImage", "LargePreviewImage");
             }
+
             previewImage ??= GetAssetIcon(asset);
             return previewImage;
         };
