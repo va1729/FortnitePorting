@@ -493,6 +493,7 @@ public class CUE4ParseViewModel : ViewModelBase
             {
                 try
                 {
+                    Log.Information("Processing asset {0}", data.AssetName);
                     var asset = await Provider.TryLoadObjectAsync(data.ObjectPath);
                     if (asset is null) continue;
 
@@ -504,6 +505,20 @@ public class CUE4ParseViewModel : ViewModelBase
                 {
                     Log.Error("Error exporting asset of type {assetType} and id {assetId} {0}", assetType, data.AssetName, e);
                 }
+            }
+        }
+
+        Log.Information("Processing exports");
+
+        foreach (var key in exportAssets.Keys)
+        {
+            try
+            {
+                exportAssets[key].ReplaceLinkedItem(exportAssets);
+            }
+            catch (Exception e)
+            {
+                Log.Error("Error processing exports {e}", key, e);
             }
         }
 

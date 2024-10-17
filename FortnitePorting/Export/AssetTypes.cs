@@ -455,7 +455,7 @@ class ExportAsset
     [JsonProperty("isActive")]
     public bool IsActive { get; set; }
 
-    [JsonProperty("linkedItem")]
+    [JsonIgnore]
     public string LinkedItem { get; set; }
 
     public ExportAsset(AssetType assetType, UObject asset) {
@@ -488,6 +488,14 @@ class ExportAsset
         IsActive = assetType.IsActive(asset);
 
         LinkedItem = assetType.GetLinkedItem(asset);
+    }
+
+    public void ReplaceLinkedItem(Dictionary<string, ExportAsset> assets)
+    {
+        if (this.LinkedItem == "" | !assets.ContainsKey(this.LinkedItem)) return;
+        var parentAsset = assets[this.LinkedItem];
+        if (this.Stats.Count == 0) this.Stats = parentAsset.Stats;
+        if (this.GameplayTags == null) this.GameplayTags = parentAsset.GameplayTags;
     }
 
     public async Task Export()
