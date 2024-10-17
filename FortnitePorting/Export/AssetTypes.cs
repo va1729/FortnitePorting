@@ -52,6 +52,8 @@ abstract class AssetType
     {
         return true;
     }
+
+    public virtual string GetLinkedItem(UObject asset) { return "";  }
 }
 
 class Outfit : AssetType
@@ -228,6 +230,8 @@ class Item : AssetType
         "Balloon",
         "Stark Supply Drone",
         "Stark Industries Chest",
+        "Chainsaw",
+        "Boom Billy",
     ];
 
     public Item()
@@ -282,6 +286,8 @@ class Item : AssetType
             processedTables.Add(dataTable.Name);
         }
 
+        hasRowValue = allStats.TryGetValue(statsRowName, out weaponRowValue);
+
         if (weaponRowValue == null) return stats;
 
         weaponRowValue.TryGetValue(out float firingRate, "FiringRate");
@@ -328,6 +334,14 @@ class Item : AssetType
         var displayName = DisplayNameHandler(asset)?.Text?.Trim();
         var index = ActiveWeapons.IndexOf(displayName);
         return index > -1;
+    }
+
+    public override string GetLinkedItem(UObject asset)
+    {
+        var hasWeaponItemDefinition = asset.TryGetValue(out UObject weaponItemDefinition, "WeaponItemDefinition");
+        if (!hasWeaponItemDefinition) return "";
+        var assetPathName = weaponItemDefinition.GetPathName();
+        return assetPathName.SubstringAfterLast(".");
     }
 }
 
@@ -441,6 +455,9 @@ class ExportAsset
     [JsonProperty("isActive")]
     public bool IsActive { get; set; }
 
+    [JsonProperty("linkedItem")]
+    public string LinkedItem { get; set; }
+
     public ExportAsset(AssetType assetType, UObject asset) {
         var icon = assetType.IconHandler(asset) ?? throw new Exception("Icon not present for asset");
         Icon = icon;
@@ -469,6 +486,8 @@ class ExportAsset
         Stats = assetType.StatsHandler(asset);
 
         IsActive = assetType.IsActive(asset);
+
+        LinkedItem = assetType.GetLinkedItem(asset);
     }
 
     public async Task Export()
